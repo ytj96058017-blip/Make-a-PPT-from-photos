@@ -1,0 +1,1483 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>이미지 to PPT 자동 변환기</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Google Fonts: Noto Sans KR -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- SortableJS: Enables drag-and-drop slide reordering -->
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+  <!-- PptxGenJS: PowerPoint presentation generator -->
+  <script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
+  <!-- JSZip: Slide auto-advance XML timing injection -->
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+
+  <style>
+    body {
+      font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: #f1f5f9;
+    }
+    
+    .fit-card {
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .fit-card.selected {
+      border-color: #0f172a;
+      box-shadow: 0 0 0 2px #0f172a;
+    }
+
+    .sortable-ghost {
+      opacity: 0.35;
+      transform: scale(0.96);
+    }
+
+    .slide-fade {
+      animation: fadeIn 0.4s ease-in-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: scale(0.985); }
+      to { opacity: 1; transform: scale(1); }
+    }
+  </style>
+</head>
+<body class="min-h-screen text-slate-800 flex flex-col justify-between p-4 sm:p-6 md:p-8">
+
+  <!-- Main Container -->
+  <main class="max-w-4xl w-full mx-auto bg-white rounded-3xl shadow-xl border border-slate-100 overflow-hidden">
+    
+    <!-- Header Section -->
+    <header class="bg-[#0f172a] text-white px-6 py-8 sm:px-10 sm:py-9 text-center select-none">
+      <div class="inline-flex items-center justify-center space-x-3 mb-2">
+        <span class="text-3xl">📊</span>
+        <h1 class="text-2xl sm:text-3xl font-bold tracking-tight">이미지 to PPT 자동 변환기</h1>
+      </div>
+      <p class="text-slate-300 text-sm sm:text-base max-w-xl mx-auto font-light mt-1">
+        이미지를 넣으면 16:9 규격 PPT로 제작되며, F5 실행 시 5초 자동 넘김 슬라이드 쇼가 재생됩니다.
+      </p>
+    </header>
+
+    <div class="p-6 sm:p-8 md:p-10 space-y-8">
+
+      <!-- SECTION 1: Slide Fill Modes -->
+      <section>
+        <h2 class="text-sm font-bold text-slate-800 uppercase tracking-wide mb-3 flex items-center">
+          <span class="w-2 h-2 rounded-full bg-slate-900 inline-block mr-2"></span>
+          슬라이드 채우기 방식
+        </h2>
+        
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+          <!-- Option 1: Contain (Letterbox) -->
+          <div data-mode="contain" class="fit-card selected bg-white border-2 border-slate-900 rounded-2xl p-4 cursor-pointer flex flex-col items-center text-center">
+            <div class="w-full h-24 bg-slate-100 rounded-xl flex items-center justify-center p-2 mb-3 border border-slate-200">
+              <div class="w-full h-full bg-slate-900 rounded flex items-center justify-center overflow-hidden relative">
+                <div class="w-8 h-12 bg-sky-500/80 rounded-sm shadow-inner"></div>
+              </div>
+            </div>
+            <div class="font-bold text-sm text-slate-900 mb-0.5">비율 유지 (여백)</div>
+            <div class="text-xs text-slate-500 leading-snug">이미지 전체가 보이며 빈 공간은 검정 여백</div>
+          </div>
+
+          <!-- Option 2: Cover (Crop) -->
+          <div data-mode="cover" class="fit-card bg-white border-2 border-slate-200 rounded-2xl p-4 cursor-pointer flex flex-col items-center text-center hover:border-slate-300">
+            <div class="w-full h-24 bg-slate-100 rounded-xl flex items-center justify-center p-2 mb-3 border border-slate-200">
+              <div class="w-full h-full bg-slate-900 rounded flex items-center justify-center overflow-hidden relative">
+                <div class="w-full h-full bg-sky-500/80 rounded-sm shadow-inner"></div>
+              </div>
+            </div>
+            <div class="font-bold text-sm text-slate-900 mb-0.5">비율 유지 꽉 채우기</div>
+            <div class="text-xs text-slate-500 leading-snug">슬라이드를 꽉 채우고 넘치는 부분은 잘림</div>
+          </div>
+
+          <!-- Option 3: Stretch -->
+          <div data-mode="stretch" class="fit-card bg-white border-2 border-slate-200 rounded-2xl p-4 cursor-pointer flex flex-col items-center text-center hover:border-slate-300">
+            <div class="w-full h-24 bg-slate-100 rounded-xl flex items-center justify-center p-2 mb-3 border border-slate-200">
+              <div class="w-full h-full bg-slate-900 rounded flex items-center justify-center overflow-hidden relative">
+                <div class="w-full h-full bg-indigo-500/80 rounded-sm shadow-inner"></div>
+              </div>
+            </div>
+            <div class="font-bold text-sm text-slate-900 mb-0.5">비율 무시 꽉 채우기</div>
+            <div class="text-xs text-slate-500 leading-snug">이미지를 늘려서 슬라이드 전체에 맞춤</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SECTION 2: Slideshow Preview & YouTube Audio Library Guide -->
+      <section class="bg-slate-50 border border-slate-200 rounded-2xl p-5 sm:p-6">
+        <div class="flex items-center justify-between mb-4">
+          <div class="flex items-center space-x-2">
+            <span class="text-xl">⏱️</span>
+            <div>
+              <h3 class="font-bold text-slate-800 text-sm sm:text-base">자동 슬라이드쇼 & 배경음악 (BGM)</h3>
+              <p class="text-xs text-slate-500">지정한 시간마다 화면이 자동 전환되며, 직접 준비한 고음질 BGM을 연동할 수 있습니다.</p>
+            </div>
+          </div>
+          <!-- Toggle switch -->
+          <label class="relative inline-flex items-center cursor-pointer select-none">
+            <input type="checkbox" id="autoSlideToggle" checked class="sr-only peer">
+            <div class="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-slate-900"></div>
+          </label>
+        </div>
+
+        <div id="slideshowSettingsBody" class="space-y-5 pt-3 border-t border-slate-200/80">
+          <!-- Interval setting -->
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <label for="intervalRange" class="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+              <span>슬라이드 자동 넘김 간격</span>
+              <span id="intervalDisplay" class="bg-slate-900 text-white text-[11px] font-bold px-2 py-0.5 rounded-full">5초</span>
+            </label>
+            <div class="flex items-center space-x-3 w-full sm:w-64">
+              <span class="text-[11px] text-slate-400 font-mono">2초</span>
+              <input type="range" id="intervalRange" min="2" max="15" value="5" step="1" class="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-slate-900">
+              <span class="text-[11px] text-slate-400 font-mono">15초</span>
+            </div>
+          </div>
+
+          <!-- Playback Mode Setting: Loop vs Once with Ending -->
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2 border-t border-slate-200/60">
+            <div>
+              <div class="text-xs font-semibold text-slate-700">슬라이드쇼 재생 방식</div>
+              <div class="text-[11px] text-slate-400">마지막 슬라이드가 끝났을 때의 동작을 선택하세요.</div>
+            </div>
+            <div class="inline-flex rounded-xl bg-slate-200/70 p-1 select-none">
+              <button type="button" id="modeEndingBtn" class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm bg-white text-slate-900">
+                ✨ 1회 재생 (엔딩+다시보기)
+              </button>
+              <button type="button" id="modeLoopBtn" class="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-600 hover:text-slate-900 transition-all">
+                🔁 계속 반복 재생
+              </button>
+            </div>
+          </div>
+
+          <!-- YouTube Audio Library Guide & Upload Panel -->
+          <div class="bg-white border border-slate-200 rounded-xl p-4 sm:p-5 shadow-sm space-y-4">
+            
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+              <div class="flex items-center space-x-2">
+                <span class="text-red-600 text-xl font-bold">▶</span>
+                <div>
+                  <h4 class="text-xs sm:text-sm font-bold text-slate-800">유튜브 오디오 보관함에서 무료 BGM 다운로드하기</h4>
+                  <p class="text-[11px] text-slate-500">구글 유튜브에서 공식 제공하는 수천 곡의 100% 무료·고음질 MP3 음원을 안전하게 사용하세요.</p>
+                </div>
+              </div>
+              <a href="https://studio.youtube.com/channel/UC/music" target="_blank" rel="noopener noreferrer" class="inline-flex items-center justify-center space-x-1.5 px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-semibold shadow-sm transition flex-shrink-0">
+                <span>🔗 유튜브 보관함 열기</span>
+              </a>
+            </div>
+
+            <!-- 3-Step Guide Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+              <div class="bg-slate-50 p-3 rounded-lg border border-slate-100">
+                <div class="font-bold text-slate-800 mb-1 flex items-center space-x-1">
+                  <span class="w-4 h-4 rounded-full bg-slate-800 text-white text-[10px] flex items-center justify-center font-mono">1</span>
+                  <span>장르 & 분위기 검색</span>
+                </div>
+                <p class="text-[11px] text-slate-500 leading-relaxed">
+                  유튜브 스튜디오 오디오 보관함에서 <strong>장르(시네마틱, 팝 등)</strong>나 <strong>분위기(행복, 차분함)</strong> 필터를 선택해 미리 들어봅니다.
+                </p>
+              </div>
+
+              <div class="bg-slate-50 p-3 rounded-lg border border-slate-100">
+                <div class="font-bold text-slate-800 mb-1 flex items-center space-x-1">
+                  <span class="w-4 h-4 rounded-full bg-slate-800 text-white text-[10px] flex items-center justify-center font-mono">2</span>
+                  <span>MP3 파일 오프라인 저장</span>
+                </div>
+                <p class="text-[11px] text-slate-500 leading-relaxed">
+                  곡명 우측 날짜 부분에 마우스를 올리면 나타나는 <strong>[다운로드]</strong> 버튼을 눌러 내 컴퓨터에 고음질 MP3를 저장합니다.
+                </p>
+              </div>
+
+              <div class="bg-slate-50 p-3 rounded-lg border border-slate-100">
+                <div class="font-bold text-slate-800 mb-1 flex items-center space-x-1">
+                  <span class="w-4 h-4 rounded-full bg-slate-800 text-white text-[10px] flex items-center justify-center font-mono">3</span>
+                  <span>아래에 첨부하기</span>
+                </div>
+                <p class="text-[11px] text-slate-500 leading-relaxed">
+                  다운로드한 MP3를 아래 <strong>[음악 파일 불러오기]</strong> 버튼으로 첨부하면 웹 슬라이드쇼 및 PPT 안내에 즉시 반영됩니다.
+                </p>
+              </div>
+            </div>
+
+            <!-- Audio File Upload Area -->
+            <div class="pt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-indigo-50/60 border border-indigo-100 rounded-xl p-3 sm:p-4">
+              <div class="flex items-center space-x-3 overflow-hidden">
+                <div class="w-10 h-10 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center text-lg flex-shrink-0">
+                  🎵
+                </div>
+                <div class="truncate">
+                  <div class="text-xs font-bold text-slate-800">현재 등록된 배경음악</div>
+                  <div id="audioFileName" class="text-xs text-indigo-700 font-semibold truncate">등록된 음악 파일이 없습니다 (선택 사항)</div>
+                </div>
+              </div>
+
+              <div class="flex items-center space-x-2 flex-shrink-0">
+                <input type="file" id="audioInput" accept="audio/*" class="hidden">
+                <button type="button" id="uploadAudioBtn" class="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg shadow-sm transition flex items-center space-x-1.5">
+                  <span>📁</span>
+                  <span>음악 파일(.mp3) 불러오기</span>
+                </button>
+                <button type="button" id="removeAudioBtn" class="hidden px-2.5 py-2 bg-white border border-slate-300 hover:bg-slate-100 text-slate-600 text-xs font-medium rounded-lg transition" title="음악 제거">
+                  ✕
+                </button>
+              </div>
+            </div>
+
+            <!-- PPT BGM Super Simple Guide (Directly under upload) -->
+            <div class="bg-slate-50 border border-slate-200 rounded-xl p-3.5 space-y-2">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-1.5 text-xs font-bold text-slate-800">
+                  <span>💡</span>
+                  <span>다운로드한 PPT에 음악 넣기 (딱 10초 컷)</span>
+                </div>
+                <span class="text-[11px] font-medium text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-100">
+                  ▶ 웹에서는 [슬라이드쇼 미리보기]로 즉시 음악과 함께 감상 가능!
+                </span>
+              </div>
+              
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+                <div class="bg-white p-2.5 rounded-lg border border-slate-200 flex items-start space-x-2">
+                  <span class="bg-indigo-600 text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px] font-bold flex-shrink-0 mt-0.5">1</span>
+                  <div>
+                    <span class="font-bold text-slate-700">1번 슬라이드</span>
+                    <p class="text-[11px] text-slate-500">PPT를 열고 첫 번째 슬라이드 클릭</p>
+                  </div>
+                </div>
+                
+                <div class="bg-white p-2.5 rounded-lg border border-slate-200 flex items-start space-x-2">
+                  <span class="bg-indigo-600 text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px] font-bold flex-shrink-0 mt-0.5">2</span>
+                  <div>
+                    <span class="font-bold text-slate-700">[삽입] → [오디오]</span>
+                    <p class="text-[11px] text-slate-500">다운로드받은 MP3 파일 선택</p>
+                  </div>
+                </div>
+
+                <div class="bg-white p-2.5 rounded-lg border border-slate-200 flex items-start space-x-2">
+                  <span class="bg-indigo-600 text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px] font-bold flex-shrink-0 mt-0.5">3</span>
+                  <div>
+                    <span class="font-bold text-indigo-700">[백그라운드에서 재생]</span>
+                    <p class="text-[11px] text-slate-500">상단 메뉴에서 클릭 한 번이면 끝!</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      <!-- SECTION 3: Drag & Drop Upload Zone -->
+      <section>
+        <div id="dropZone" class="group relative border-2 border-dashed border-slate-300 hover:border-slate-400 bg-slate-50 hover:bg-slate-100/70 rounded-2xl p-8 sm:p-12 text-center transition-all cursor-pointer">
+          <input type="file" id="fileInput" multiple accept="image/*" class="hidden">
+          
+          <div class="flex flex-col items-center justify-center space-y-3">
+            <div class="w-14 h-14 rounded-2xl bg-white shadow-sm border border-slate-200 flex items-center justify-center text-2xl group-hover:scale-105 transition-transform duration-200">
+              🖼️
+            </div>
+            <div>
+              <p class="font-bold text-slate-800 text-base sm:text-lg">
+                슬라이드에 넣을 이미지를 드래그하거나 클릭하여 업로드
+              </p>
+              <p class="text-xs text-slate-400 mt-1 font-medium">
+                PNG, JPG, WEBP, GIF 등 · 여러 장 동시 선택 가능
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Status Notification Bar -->
+      <div id="statusMessage" class="hidden py-3 px-4 rounded-xl text-xs sm:text-sm font-medium transition-all"></div>
+
+      <!-- SECTION 4: Image List & Slideshow Preview Trigger -->
+      <section id="previewSection" class="hidden space-y-4">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+          <div class="flex items-center space-x-2">
+            <h3 class="font-bold text-slate-800 text-sm">업로드된 슬라이드 목록</h3>
+            <span id="slideCountBadge" class="bg-slate-200 text-slate-700 text-xs font-bold px-2 py-0.5 rounded-full">0개</span>
+            <span class="text-xs text-slate-400 font-light hidden sm:inline">(드래그하여 순서 변경)</span>
+          </div>
+          
+          <div class="flex items-center space-x-2">
+            <button type="button" id="previewSlideshowBtn" class="inline-flex items-center space-x-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold shadow-sm transition">
+              <span>▶️</span>
+              <span>슬라이드쇼 미리보기</span>
+            </button>
+            <button type="button" id="exportHtmlViewerBtn" class="inline-flex items-center space-x-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold shadow-sm transition" title="카톡 등으로 전송 가능한 자동재생 웹 플레이어 파일 저장">
+              <span>📱</span>
+              <span>공유용 슬라이드쇼 파일 저장(.html)</span>
+            </button>
+            <button type="button" id="clearAllBtn" class="text-xs text-rose-500 hover:text-rose-700 font-medium px-2 py-1 rounded">
+              전체 삭제
+            </button>
+          </div>
+        </div>
+
+        <!-- Thumbnail Grid for Reordering -->
+        <div id="imageListContainer" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 max-h-[420px] overflow-y-auto p-1">
+          <!-- Dynamic cards injected via JS -->
+        </div>
+      </section>
+
+      <!-- SECTION 5: Generate & Download PPT Button -->
+      <section class="pt-2">
+        <button type="button" id="downloadBtn" disabled class="w-full py-4 bg-slate-400 cursor-not-allowed text-white font-bold text-base sm:text-lg rounded-2xl shadow-lg transition-all flex items-center justify-center space-x-2 select-none">
+          <svg id="downloadSpinner" class="hidden animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          <span id="btnText">PPT 생성 및 다운로드</span>
+        </button>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="mt-8 text-center text-xs text-slate-400 font-light select-none">
+    모든 처리는 브라우저 내부에서 안전하게 실행되며 사진과 음원은 외부 서버로 전송되지 않습니다.
+  </footer>
+
+  <!-- Export Info Modal -->
+  <div id="exportInfoModal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <div class="flex items-center space-x-2">
+          <span class="text-2xl">📱</span>
+          <h3 class="font-bold text-slate-900 text-base">공유용 슬라이드쇼 파일 저장 완료!</h3>
+        </div>
+        <button type="button" id="closeExportModalBtn" class="text-slate-400 hover:text-slate-600 text-sm">✕</button>
+      </div>
+
+      <p class="text-xs text-slate-600 leading-relaxed">
+        다운로드된 <span id="exportedFileNameBadge" class="font-bold text-emerald-700 font-mono bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">SlideShow.html</span> 파일을 카카오톡이나 이메일 등으로 전달해 보세요.
+      </p>
+
+      <div class="bg-slate-50 border border-slate-200 rounded-xl p-3.5 space-y-2 text-xs">
+        <div class="font-bold text-slate-800 flex items-center space-x-1.5">
+          <span>✨</span>
+          <span>상대방이 보게 될 화면 특징</span>
+        </div>
+        <ul class="text-[11px] text-slate-600 space-y-1.5 list-disc list-inside">
+          <li><strong>PPT 프로그램 불필요</strong>: 스마트폰, 태블릿, PC 어디서든 브라우저로 바로 실행</li>
+          <li><strong>원클릭 자동 실행</strong>: 파일을 열자마자 전체화면 모드로 음악과 함께 슬라이드쇼 재생</li>
+          <li><strong>간편한 조작</strong>: 스마트폰 화면 터치 및 키보드 화살표 키로 앞/뒤 이동 가능</li>
+        </ul>
+      </div>
+
+      <div class="pt-1">
+        <button type="button" id="confirmExportModalBtn" class="w-full py-2.5 bg-slate-900 hover:bg-black text-white text-xs font-semibold rounded-xl transition shadow">
+          확인
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slideshow Modal Player -->
+  <div id="slideshowModal" class="hidden fixed inset-0 z-50 bg-black/95 flex flex-col justify-between p-4 sm:p-6 backdrop-blur-sm select-none">
+    <!-- Top Bar -->
+    <div class="flex items-center justify-between text-white z-10">
+      <div class="flex items-center space-x-3">
+        <span class="text-sm font-semibold tracking-wide">🎞️ 슬라이드쇼 재생</span>
+        <span id="timerBadge" class="bg-white/20 text-xs px-2.5 py-0.5 rounded-full font-mono">5초 자동</span>
+        <span id="modalMusicTitle" class="text-xs text-indigo-300 truncate max-w-[200px] sm:max-w-xs font-medium">음악 없음</span>
+        <a id="sharedViewEditBtn" href="javascript:void(0)" class="hidden text-xs bg-indigo-600 hover:bg-indigo-700 text-white px-2.5 py-1 rounded-lg font-medium transition">
+          나도 만들기 ↗
+        </a>
+      </div>
+      <button type="button" id="closeSlideshowBtn" class="text-slate-300 hover:text-white bg-white/10 hover:bg-white/20 p-2 rounded-full transition" title="닫기 (ESC)">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
+
+    <!-- Center Stage (Slideshow Viewer) -->
+    <div class="relative flex-1 flex items-center justify-center my-4 overflow-hidden">
+      <img id="slideshowImg" src="" alt="Slide" class="max-h-full max-w-full object-contain rounded-lg shadow-2xl transition-all duration-500 slide-fade">
+
+      <!-- Navigation Arrows -->
+      <button type="button" id="prevSlideBtn" class="absolute left-2 sm:left-6 text-white bg-black/50 hover:bg-black/80 p-3 rounded-full transition hover:scale-110" title="이전 (←)">
+        ❮
+      </button>
+      <button type="button" id="nextSlideBtn" class="absolute right-2 sm:right-6 text-white bg-black/50 hover:bg-black/80 p-3 rounded-full transition hover:scale-110" title="다음 (→)">
+        ❯
+      </button>
+
+      <!-- Ending Screen Overlay for In-App Preview -->
+      <div id="previewEndingOverlay" class="hidden absolute inset-0 bg-black/85 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center z-20 transition-opacity">
+        <div class="max-w-xs w-full bg-slate-900/90 border border-slate-700 rounded-3xl p-6 shadow-2xl flex flex-col items-center space-y-4">
+          <div class="w-14 h-14 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-2xl">
+            ✨
+          </div>
+          <div>
+            <h3 class="text-base font-bold text-white mb-1">슬라이드쇼가 끝났습니다</h3>
+            <p class="text-xs text-slate-400">모든 사진을 감상했습니다.</p>
+          </div>
+          <div class="w-full space-y-2">
+            <button type="button" id="replayPreviewBtn" class="w-full py-2.5 px-4 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs rounded-xl shadow transition flex items-center justify-center space-x-1.5">
+              <span>↺</span>
+              <span>처음부터 다시 보기</span>
+            </button>
+            <button type="button" id="closeEndingPreviewBtn" class="w-full py-2 px-4 bg-white/10 hover:bg-white/20 text-slate-300 text-xs rounded-xl transition">
+              닫기
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom Controls & Progress Bar -->
+    <div class="flex flex-col items-center space-y-3 z-10">
+      <div class="w-full max-w-xl bg-white/20 h-1.5 rounded-full overflow-hidden">
+        <div id="slideProgressBar" class="bg-indigo-500 h-full w-0 transition-all duration-100 ease-linear"></div>
+      </div>
+
+      <div class="flex items-center justify-between w-full max-w-xl text-white text-xs">
+        <span id="slideshowCounter" class="font-mono text-slate-300">1 / 1</span>
+        
+        <div class="flex items-center space-x-3">
+          <button type="button" id="togglePlayBtn" class="px-4 py-1.5 bg-white/20 hover:bg-white/30 rounded-lg font-medium transition flex items-center space-x-1">
+            <span id="playPauseIcon">⏸️</span>
+            <span id="playPauseText">일시정지</span>
+          </button>
+        </div>
+
+        <span class="text-slate-400 text-[11px] hidden sm:inline">단축키: 스페이스바(정지/재생) · 방향키(이동) · ESC(닫기)</span>
+      </div>
+    </div>
+
+    <audio id="slideshowAudio" loop></audio>
+  </div>
+
+  <script>
+    // Global Application State
+    const state = {
+      images: [],          // Array of { id, file, name, dataUrl, width, height, size }
+      fillMode: 'contain', // 'contain' | 'cover' | 'stretch'
+      autoSlide: true,     // Slideshow auto advance enabled
+      slideInterval: 5,    // Default 5 seconds
+      loopMode: false,     // false: 1 time + Ending Card, true: Infinite Loop
+      bgAudio: null,       // { name, blobUrl, file } or null
+      isGenerating: false
+    };
+
+    // DOM Elements
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+    const imageListContainer = document.getElementById('imageListContainer');
+    const previewSection = document.getElementById('previewSection');
+    const slideCountBadge = document.getElementById('slideCountBadge');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const btnText = document.getElementById('btnText');
+    const downloadSpinner = document.getElementById('downloadSpinner');
+    const clearAllBtn = document.getElementById('clearAllBtn');
+    const statusMessage = document.getElementById('statusMessage');
+    const fitCards = document.querySelectorAll('.fit-card');
+
+    const autoSlideToggle = document.getElementById('autoSlideToggle');
+    const intervalRange = document.getElementById('intervalRange');
+    const intervalDisplay = document.getElementById('intervalDisplay');
+    const slideshowSettingsBody = document.getElementById('slideshowSettingsBody');
+    const modeEndingBtn = document.getElementById('modeEndingBtn');
+    const modeLoopBtn = document.getElementById('modeLoopBtn');
+    const audioInput = document.getElementById('audioInput');
+    const uploadAudioBtn = document.getElementById('uploadAudioBtn');
+    const removeAudioBtn = document.getElementById('removeAudioBtn');
+    const audioFileName = document.getElementById('audioFileName');
+
+    // Slideshow Modal Elements
+    const previewSlideshowBtn = document.getElementById('previewSlideshowBtn');
+    const slideshowModal = document.getElementById('slideshowModal');
+    const closeSlideshowBtn = document.getElementById('closeSlideshowBtn');
+    const slideshowImg = document.getElementById('slideshowImg');
+    const slideshowCounter = document.getElementById('slideshowCounter');
+    const slideProgressBar = document.getElementById('slideProgressBar');
+    const timerBadge = document.getElementById('timerBadge');
+    const modalMusicTitle = document.getElementById('modalMusicTitle');
+    const togglePlayBtn = document.getElementById('togglePlayBtn');
+    const playPauseIcon = document.getElementById('playPauseIcon');
+    const playPauseText = document.getElementById('playPauseText');
+    const prevSlideBtn = document.getElementById('prevSlideBtn');
+    const nextSlideBtn = document.getElementById('nextSlideBtn');
+    const slideshowAudio = document.getElementById('slideshowAudio');
+    const previewEndingOverlay = document.getElementById('previewEndingOverlay');
+    const replayPreviewBtn = document.getElementById('replayPreviewBtn');
+    const closeEndingPreviewBtn = document.getElementById('closeEndingPreviewBtn');
+
+    // Standalone HTML Player Export Elements
+    const exportHtmlViewerBtn = document.getElementById('exportHtmlViewerBtn');
+    const exportInfoModal = document.getElementById('exportInfoModal');
+    const closeExportModalBtn = document.getElementById('closeExportModalBtn');
+    const confirmExportModalBtn = document.getElementById('confirmExportModalBtn');
+    const exportedFileNameBadge = document.getElementById('exportedFileNameBadge');
+
+    let currentSlideIdx = 0;
+    let slideTimer = null;
+    let progressTimer = null;
+    let isSlidePlaying = false;
+    let progressPercent = 0;
+
+    autoSlideToggle.addEventListener('change', (e) => {
+      state.autoSlide = e.target.checked;
+      if (state.autoSlide) {
+        slideshowSettingsBody.classList.remove('opacity-40', 'pointer-events-none');
+      } else {
+        slideshowSettingsBody.classList.add('opacity-40', 'pointer-events-none');
+      }
+      updateUIState();
+    });
+
+    intervalRange.addEventListener('input', (e) => {
+      state.slideInterval = parseInt(e.target.value, 10);
+      intervalDisplay.textContent = `${state.slideInterval}초`;
+      updateUIState();
+    });
+
+    // Playback Loop vs Ending toggle handlers
+    modeEndingBtn.addEventListener('click', () => {
+      state.loopMode = false;
+      modeEndingBtn.className = 'px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm bg-white text-slate-900';
+      modeLoopBtn.className = 'px-3 py-1.5 rounded-lg text-xs font-medium text-slate-600 hover:text-slate-900 transition-all';
+      showMessage('슬라이드쇼 재생 설정: 1회 완주 후 엔딩 카드가 표시됩니다.', 'info');
+    });
+
+    modeLoopBtn.addEventListener('click', () => {
+      state.loopMode = true;
+      modeLoopBtn.className = 'px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm bg-white text-slate-900';
+      modeEndingBtn.className = 'px-3 py-1.5 rounded-lg text-xs font-medium text-slate-600 hover:text-slate-900 transition-all';
+      showMessage('슬라이드쇼 재생 설정: 멈추지 않고 계속 반복 재생됩니다.', 'info');
+    });
+
+    // Custom Audio File Upload
+    uploadAudioBtn.addEventListener('click', () => audioInput.click());
+
+    audioInput.addEventListener('change', (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+
+      if (!file.type.startsWith('audio/')) {
+        showMessage('오디오 파일(MP3, WAV 등)만 업로드할 수 있습니다.', 'error');
+        return;
+      }
+
+      const fileUrl = URL.createObjectURL(file);
+      state.bgAudio = {
+        name: file.name,
+        blobUrl: fileUrl,
+        file: file
+      };
+
+      audioFileName.textContent = `등록 완료: ${file.name}`;
+      audioFileName.className = 'text-xs text-indigo-700 font-semibold truncate';
+      removeAudioBtn.classList.remove('hidden');
+      showMessage(`음악 파일 [${file.name}]이 등록되었습니다. 미리보기에서 재생할 수 있습니다!`, 'success');
+      audioInput.value = '';
+    });
+
+    removeAudioBtn.addEventListener('click', () => {
+      if (state.bgAudio && state.bgAudio.blobUrl) {
+        URL.revokeObjectURL(state.bgAudio.blobUrl);
+      }
+      state.bgAudio = null;
+      audioFileName.textContent = '등록된 음악 파일이 없습니다 (선택 사항)';
+      audioFileName.className = 'text-xs text-slate-500 font-semibold truncate';
+      removeAudioBtn.classList.add('hidden');
+      showMessage('배경음악이 제거되었습니다.', 'info');
+    });
+
+    // Sortable Drag & Drop Reordering
+    let sortable = null;
+    if (typeof Sortable !== 'undefined') {
+      sortable = Sortable.create(imageListContainer, {
+        animation: 200,
+        ghostClass: 'sortable-ghost',
+        onEnd: function () {
+          const newOrderIds = Array.from(imageListContainer.children).map(child => child.dataset.id);
+          state.images.sort((a, b) => newOrderIds.indexOf(a.id) - newOrderIds.indexOf(b.id));
+          updateSlideIndexBadges();
+        }
+      });
+    }
+
+    fitCards.forEach(card => {
+      card.addEventListener('click', () => {
+        fitCards.forEach(c => {
+          c.classList.remove('selected', 'border-slate-900');
+          c.classList.add('border-slate-200');
+        });
+        card.classList.add('selected', 'border-slate-900');
+        card.classList.remove('border-slate-200');
+        state.fillMode = card.dataset.mode;
+      });
+    });
+
+    dropZone.addEventListener('click', () => fileInput.click());
+
+    ['dragenter', 'dragover'].forEach(eventName => {
+      dropZone.addEventListener(eventName, (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dropZone.classList.add('bg-sky-50', 'border-sky-500', 'scale-[0.995]');
+      }, false);
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+      dropZone.addEventListener(eventName, (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dropZone.classList.remove('bg-sky-50', 'border-sky-500', 'scale-[0.995]');
+      }, false);
+    });
+
+    dropZone.addEventListener('drop', (e) => {
+      const dt = e.dataTransfer;
+      if (dt.files && dt.files.length > 0) {
+        handleFiles(dt.files);
+      }
+    });
+
+    fileInput.addEventListener('change', (e) => {
+      if (e.target.files && e.target.files.length > 0) {
+        handleFiles(e.target.files);
+        fileInput.value = '';
+      }
+    });
+
+    clearAllBtn.addEventListener('click', () => {
+      state.images = [];
+      renderImageList();
+      updateUIState();
+      showMessage('모든 이미지가 목록에서 제거되었습니다.', 'info');
+    });
+
+    function handleFiles(fileList) {
+      const validFiles = Array.from(fileList).filter(file => file.type.startsWith('image/'));
+      
+      if (validFiles.length === 0) {
+        showMessage('이미지 파일(PNG, JPG, WEBP, GIF 등)만 업로드할 수 있습니다.', 'error');
+        return;
+      }
+
+      let loadedCount = 0;
+      validFiles.forEach(file => {
+        const reader = new FileReader();
+        const id = 'img_' + Math.random().toString(36).substr(2, 9);
+
+        reader.onload = (e) => {
+          const dataUrl = e.target.result;
+          const img = new Image();
+          img.onload = () => {
+            state.images.push({
+              id: id,
+              file: file,
+              name: file.name,
+              dataUrl: dataUrl,
+              width: img.naturalWidth || img.width,
+              height: img.naturalHeight || img.height,
+              size: file.size
+            });
+
+            loadedCount++;
+            if (loadedCount === validFiles.length) {
+              renderImageList();
+              updateUIState();
+              showMessage(`${validFiles.length}장의 이미지가 성공적으로 추가되었습니다.`, 'success');
+            }
+          };
+          img.onerror = () => {
+            loadedCount++;
+            if (loadedCount === validFiles.length) {
+              renderImageList();
+              updateUIState();
+            }
+          };
+          img.src = dataUrl;
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+
+    function renderImageList() {
+      imageListContainer.innerHTML = '';
+
+      state.images.forEach((item, index) => {
+        const card = document.createElement('div');
+        card.className = 'group relative bg-slate-50 border border-slate-200 rounded-xl overflow-hidden p-2 flex flex-col shadow-sm hover:shadow transition-all duration-150 cursor-grab active:cursor-grabbing';
+        card.dataset.id = item.id;
+
+        card.innerHTML = `
+          <div class="relative w-full aspect-video bg-slate-900 rounded-lg overflow-hidden flex items-center justify-center">
+            <img src="${item.dataUrl}" alt="${item.name}" class="w-full h-full object-contain pointer-events-none select-none">
+            <div class="absolute top-1.5 left-1.5 bg-black/75 text-white text-[10px] font-bold px-1.5 py-0.5 rounded shadow index-badge">
+              #${index + 1}
+            </div>
+            <button type="button" class="delete-btn absolute top-1.5 right-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 shadow" title="삭제">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+              </svg>
+            </button>
+          </div>
+          <div class="mt-2 px-1 flex flex-col">
+            <div class="text-xs font-semibold text-slate-700 truncate" title="${item.name}">${item.name}</div>
+            <div class="text-[10px] text-slate-400 font-mono mt-0.5 flex justify-between">
+              <span>${item.width}×${item.height}</span>
+              <span>${(item.size / 1024).toFixed(0)}KB</span>
+            </div>
+          </div>
+        `;
+
+        const deleteBtn = card.querySelector('.delete-btn');
+        deleteBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          deleteImage(item.id);
+        });
+
+        imageListContainer.appendChild(card);
+      });
+
+      updateSlideIndexBadges();
+    }
+
+    function deleteImage(id) {
+      state.images = state.images.filter(img => img.id !== id);
+      renderImageList();
+      updateUIState();
+    }
+
+    function updateSlideIndexBadges() {
+      const cards = imageListContainer.querySelectorAll('.group');
+      cards.forEach((card, idx) => {
+        const badge = card.querySelector('.index-badge');
+        if (badge) badge.textContent = `#${idx + 1}`;
+      });
+    }
+
+    function updateUIState() {
+      const count = state.images.length;
+      slideCountBadge.textContent = `${count}개`;
+
+      if (count > 0) {
+        previewSection.classList.remove('hidden');
+        downloadBtn.disabled = false;
+        downloadBtn.classList.remove('bg-slate-400', 'cursor-not-allowed');
+        downloadBtn.classList.add('bg-slate-900', 'hover:bg-black', 'cursor-pointer', 'active:scale-[0.99]');
+        btnText.textContent = `${count}장의 이미지로 PPT 다운로드`;
+      } else {
+        previewSection.classList.add('hidden');
+        downloadBtn.disabled = true;
+        downloadBtn.classList.add('bg-slate-400', 'cursor-not-allowed');
+        downloadBtn.classList.remove('bg-slate-900', 'hover:bg-black', 'cursor-pointer', 'active:scale-[0.99]');
+        btnText.textContent = 'PPT 생성 및 다운로드';
+      }
+    }
+
+    function showMessage(msg, type = 'info') {
+      statusMessage.textContent = msg;
+      statusMessage.classList.remove('hidden', 'bg-blue-50', 'text-blue-800', 'bg-emerald-50', 'text-emerald-800', 'bg-rose-50', 'text-rose-800');
+
+      if (type === 'success') {
+        statusMessage.classList.add('bg-emerald-50', 'text-emerald-800', 'border', 'border-emerald-200');
+      } else if (type === 'error') {
+        statusMessage.classList.add('bg-rose-50', 'text-rose-800', 'border', 'border-rose-200');
+      } else {
+        statusMessage.classList.add('bg-blue-50', 'text-blue-800', 'border', 'border-blue-200');
+      }
+
+      clearTimeout(statusMessage.timer);
+      statusMessage.timer = setTimeout(() => {
+        statusMessage.classList.add('hidden');
+      }, 5000);
+    }
+
+    // Export standalone self-contained HTML slideshow file
+    exportHtmlViewerBtn.addEventListener('click', async () => {
+      if (state.images.length === 0) return;
+
+      try {
+        showMessage('단독 실행용 슬라이드쇼 파일을 생성하고 있습니다...', 'info');
+
+        let audioDataUri = '';
+        if (state.bgAudio && state.bgAudio.file) {
+          // Convert attached local user audio file into base64 data URI
+          audioDataUri = await new Promise((resolve) => {
+            const r = new FileReader();
+            r.onload = () => resolve(r.result);
+            r.onerror = () => resolve('');
+            r.readAsDataURL(state.bgAudio.file);
+          });
+        }
+
+        // Pack images into clean structure
+        const slideDataJson = JSON.stringify(state.images.map(img => img.dataUrl));
+        const audioTitle = state.bgAudio ? state.bgAudio.name : '';
+        const intervalSec = state.slideInterval || 5;
+        const isLoop = !!state.loopMode;
+
+        // Build 100% standalone single-file viewer (Mobile & PC Autoplay-policy compliant)
+        const viewerHtml = `<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>슬라이드쇼 - 감상하기</title>
+  <script src="https://cdn.tailwindcss.com"><\/script>
+  <style>
+    body { background-color: #030712; }
+    .slide-fade { animation: fadeIn 0.4s ease-in-out; }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: scale(0.985); }
+      to { opacity: 1; transform: scale(1); }
+    }
+  </style>
+</head>
+<body class="min-h-screen text-white flex flex-col justify-between p-3 sm:p-6 select-none overflow-hidden font-sans relative">
+
+  <!-- Autoplay Policy Bypass Overlay (Mobile & Desktop Touch Gateway) -->
+  <div id="startOverlay" class="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center cursor-pointer transition-opacity duration-300">
+    <div class="max-w-xs w-full bg-slate-900 border border-slate-700/80 rounded-3xl p-6 sm:p-8 shadow-2xl flex flex-col items-center space-y-4">
+      <div class="w-16 h-16 rounded-full bg-indigo-600/20 text-indigo-400 flex items-center justify-center text-3xl shadow-inner animate-pulse">
+        🎵
+      </div>
+      <div>
+        <h2 class="text-base sm:text-lg font-bold text-white mb-1">슬라이드쇼 시작</h2>
+        <p class="text-xs text-slate-400 leading-relaxed">
+          ${audioTitle ? '<span class="text-indigo-300 font-medium">배경음악: ' + audioTitle + '</span><br>' : ''}
+          버튼을 터치하면 음악과 함께 재생됩니다.
+        </p>
+      </div>
+      <button type="button" id="startBtn" class="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white font-semibold text-xs sm:text-sm rounded-xl shadow-lg transition flex items-center justify-center space-x-2">
+        <span>▶</span>
+        <span>음악과 함께 감상하기</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Ending Screen Overlay (Shown when loop is false and all slides finish) -->
+  <div id="endingOverlay" class="hidden fixed inset-0 z-40 bg-black/90 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center transition-opacity duration-300">
+    <div class="max-w-xs w-full bg-slate-900 border border-slate-700 rounded-3xl p-6 sm:p-8 shadow-2xl flex flex-col items-center space-y-4">
+      <div class="w-16 h-16 rounded-full bg-emerald-600/20 text-emerald-400 flex items-center justify-center text-3xl shadow-inner">
+        ✨
+      </div>
+      <div>
+        <h2 class="text-base sm:text-lg font-bold text-white mb-1">감사합니다</h2>
+        <p class="text-xs text-slate-400 leading-relaxed">
+          모든 슬라이드가 끝났습니다.<br>다시 보시려면 아래 버튼을 누르세요.
+        </p>
+      </div>
+      <div class="w-full space-y-2">
+        <button type="button" id="replayBtn" class="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white font-semibold text-xs sm:text-sm rounded-xl shadow-lg transition flex items-center justify-center space-x-2">
+          <span>↺</span>
+          <span>처음부터 다시 보기</span>
+        </button>
+        <button type="button" id="loopPlayBtn" class="w-full py-2.5 px-4 bg-white/10 hover:bg-white/20 text-slate-300 text-xs rounded-xl transition flex items-center justify-center space-x-1.5">
+          <span>🔁</span>
+          <span>계속 반복 재생하기</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Top Bar -->
+  <div class="flex items-center justify-between z-10">
+    <div class="flex items-center space-x-2 sm:space-x-3">
+      <span class="text-xs sm:text-sm font-semibold tracking-wide">🎞️ 슬라이드쇼</span>
+      <span class="bg-white/10 text-[10px] sm:text-xs px-2 sm:px-2.5 py-0.5 rounded-full font-mono text-slate-300">${intervalSec}초 자동</span>
+      <span id="musicTitle" class="text-[11px] sm:text-xs text-indigo-300 truncate max-w-[130px] sm:max-w-xs font-medium">${audioTitle ? '🎵 ' + audioTitle : '음악 없음'}</span>
+    </div>
+    
+    <div class="flex items-center space-x-2">
+      <!-- Mute / Unmute Button -->
+      <button type="button" id="muteToggleBtn" class="text-xs px-2.5 py-1 bg-white/10 hover:bg-white/20 rounded-lg text-slate-200 transition flex items-center space-x-1" title="소리 켜기/끄기">
+        <span id="muteIcon">🔊</span>
+      </button>
+      <div class="text-[11px] text-slate-400 font-mono bg-white/5 px-2 py-1 rounded" id="slideCounter">1 / 1</div>
+    </div>
+  </div>
+
+  <!-- Center Stage -->
+  <div class="relative flex-1 flex items-center justify-center my-3 overflow-hidden" id="slideStage">
+    <img id="viewerImg" src="" alt="Slide" class="max-h-full max-w-full object-contain rounded-lg shadow-2xl transition-all duration-300 slide-fade">
+    <button type="button" id="prevBtn" class="absolute left-2 sm:left-6 text-white bg-black/50 hover:bg-black/80 p-3 sm:p-3.5 rounded-full transition hover:scale-110 active:scale-90">❮</button>
+    <button type="button" id="nextBtn" class="absolute right-2 sm:right-6 text-white bg-black/50 hover:bg-black/80 p-3 sm:p-3.5 rounded-full transition hover:scale-110 active:scale-90">❯</button>
+  </div>
+
+  <!-- Bottom Bar -->
+  <div class="flex flex-col items-center space-y-2 sm:space-y-3 z-10">
+    <div class="w-full max-w-xl bg-white/15 h-1 sm:h-1.5 rounded-full overflow-hidden">
+      <div id="pBar" class="bg-indigo-500 h-full w-0 transition-all duration-100 ease-linear"></div>
+    </div>
+    <div class="flex items-center justify-between w-full max-w-xl text-xs">
+      <button type="button" id="playBtn" class="px-3.5 py-1.5 bg-white/15 hover:bg-white/25 rounded-lg font-medium transition flex items-center space-x-1 text-[11px] sm:text-xs">
+        <span id="pIcon">⏸️</span>
+        <span id="pText">일시정지</span>
+      </button>
+      <span class="text-slate-400 text-[10px] sm:text-[11px]">화면 터치(스와이프) 또는 방향키로 이동 가능</span>
+    </div>
+  </div>
+
+  <audio id="vAudio" loop playsinline preload="auto"></audio>
+
+  <script>
+    const slides = ${slideDataJson};
+    const rawAudioData = "${audioDataUri}";
+    const intervalSec = ${intervalSec};
+    let isLoopMode = ${isLoop};
+    let currentIdx = 0;
+    let isPlaying = true;
+    let isStarted = false;
+    let slideTimer = null, pTimer = null, pPercent = 0;
+
+    const img = document.getElementById('viewerImg');
+    const counter = document.getElementById('slideCounter');
+    const pBar = document.getElementById('pBar');
+    const playBtn = document.getElementById('playBtn');
+    const pIcon = document.getElementById('pIcon');
+    const pText = document.getElementById('pText');
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const audio = document.getElementById('vAudio');
+    const stage = document.getElementById('slideStage');
+    const overlay = document.getElementById('startOverlay');
+    const startBtn = document.getElementById('startBtn');
+    const muteToggleBtn = document.getElementById('muteToggleBtn');
+    const muteIcon = document.getElementById('muteIcon');
+    const endingOverlay = document.getElementById('endingOverlay');
+    const replayBtn = document.getElementById('replayBtn');
+    const loopPlayBtn = document.getElementById('loopPlayBtn');
+
+    function setupAudioSource() {
+      if (!rawAudioData || !rawAudioData.startsWith('data:audio/')) return;
+      try {
+        const parts = rawAudioData.split(',');
+        const mime = parts[0].match(/:(.*?);/)[1];
+        const b64 = atob(parts[1]);
+        const u8arr = new Uint8Array(b64.length);
+        for (let i = 0; i < b64.length; i++) {
+          u8arr[i] = b64.charCodeAt(i);
+        }
+        const blob = new Blob([u8arr], { type: mime });
+        audio.src = URL.createObjectURL(blob);
+        audio.load();
+      } catch (e) {
+        audio.src = rawAudioData;
+        audio.load();
+      }
+    }
+
+    setupAudioSource();
+
+    function render(idx) {
+      if (!slides.length) return;
+
+      // Check if finished (1-time play finished)
+      if (idx >= slides.length) {
+        if (!isLoopMode) {
+          showEnding();
+          return;
+        } else {
+          idx = 0;
+        }
+      }
+      if (idx < 0) idx = slides.length - 1;
+
+      currentIdx = idx;
+      img.classList.remove('slide-fade');
+      void img.offsetWidth;
+      img.src = slides[currentIdx];
+      img.classList.add('slide-fade');
+      counter.textContent = (currentIdx + 1) + ' / ' + slides.length;
+      resetP();
+    }
+
+    function showEnding() {
+      clearInterval(slideTimer);
+      clearInterval(pTimer);
+      isPlaying = false;
+      pIcon.textContent = '▶️';
+      pText.textContent = '재생';
+
+      // Smooth audio fade out
+      if (audio.src && !audio.paused) {
+        let vol = audio.volume;
+        const fade = setInterval(() => {
+          if (vol > 0.1) {
+            vol -= 0.1;
+            audio.volume = Math.max(0, vol);
+          } else {
+            clearInterval(fade);
+            audio.pause();
+            audio.volume = 1.0;
+          }
+        }, 80);
+      }
+
+      endingOverlay.classList.remove('hidden');
+    }
+
+    function replay(loop = false) {
+      isLoopMode = loop;
+      endingOverlay.classList.add('hidden');
+      isPlaying = true;
+      pIcon.textContent = '⏸️';
+      pText.textContent = '일시정지';
+
+      if (audio.src) {
+        audio.currentTime = 0;
+        audio.volume = 1.0;
+        audio.play().catch(() => {});
+      }
+
+      render(0);
+      runTimer();
+    }
+
+    replayBtn.addEventListener('click', (e) => { e.stopPropagation(); replay(false); });
+    loopPlayBtn.addEventListener('click', (e) => { e.stopPropagation(); replay(true); });
+
+    function resetP() { pPercent = 0; pBar.style.width = '0%'; }
+
+    function runTimer() {
+      clearInterval(slideTimer);
+      clearInterval(pTimer);
+      resetP();
+      const totalMs = intervalSec * 1000;
+      const stepMs = 50;
+      const stepPercent = (stepMs / totalMs) * 100;
+      pTimer = setInterval(() => {
+        pPercent += stepPercent;
+        if (pPercent > 100) pPercent = 100;
+        pBar.style.width = pPercent + '%';
+      }, stepMs);
+      slideTimer = setInterval(() => next(), totalMs);
+    }
+
+    function next() { render(currentIdx + 1); if (isPlaying) runTimer(); }
+    function prev() { render(currentIdx - 1); if (isPlaying) runTimer(); }
+
+    function togglePlay() {
+      if (isPlaying) {
+        isPlaying = false;
+        pIcon.textContent = '▶️';
+        pText.textContent = '재생';
+        clearInterval(slideTimer);
+        clearInterval(pTimer);
+        if (audio.src) audio.pause();
+      } else {
+        if (!endingOverlay.classList.contains('hidden')) {
+          replay(isLoopMode);
+          return;
+        }
+        isPlaying = true;
+        pIcon.textContent = '⏸️';
+        pText.textContent = '일시정지';
+        if (audio.src) {
+          audio.play().catch(function(err){ console.warn(err); });
+        }
+        runTimer();
+      }
+    }
+
+    muteToggleBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      audio.muted = !audio.muted;
+      muteIcon.textContent = audio.muted ? '🔇' : '🔊';
+    });
+
+    nextBtn.addEventListener('click', (e) => { e.stopPropagation(); next(); });
+    prevBtn.addEventListener('click', (e) => { e.stopPropagation(); prev(); });
+    playBtn.addEventListener('click', (e) => { e.stopPropagation(); togglePlay(); });
+
+    // Touch swipe support for smartphones
+    let startX = 0;
+    stage.addEventListener('touchstart', (e) => { startX = e.touches[0].clientX; }, {passive: true});
+    stage.addEventListener('touchend', (e) => {
+      const diffX = e.changedTouches[0].clientX - startX;
+      if (Math.abs(diffX) > 40) {
+        if (diffX < 0) next(); else prev();
+      }
+    }, {passive: true});
+
+    window.addEventListener('keydown', (e) => {
+      if (!isStarted) return;
+      if (e.key === ' ' || e.code === 'Space') { e.preventDefault(); togglePlay(); }
+      else if (e.key === 'ArrowLeft') prev();
+      else if (e.key === 'ArrowRight') next();
+    });
+
+    function startShow(e) {
+      if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      if (isStarted) return;
+      isStarted = true;
+
+      try {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (AudioCtx) {
+          const ctx = new AudioCtx();
+          if (ctx.state === 'suspended') ctx.resume();
+        }
+      } catch (err) {}
+
+      if (audio.src) {
+        audio.currentTime = 0;
+        const promise = audio.play();
+        if (promise !== undefined) {
+          promise.catch(function(err) {
+            const retryHandler = function() {
+              audio.play().catch(function(){});
+              window.removeEventListener('touchstart', retryHandler);
+              window.removeEventListener('click', retryHandler);
+            };
+            window.addEventListener('touchstart', retryHandler, {once: true});
+            window.addEventListener('click', retryHandler, {once: true});
+          });
+        }
+      }
+
+      overlay.style.opacity = '0';
+      setTimeout(() => overlay.classList.add('hidden'), 300);
+
+      render(0);
+      runTimer();
+    }
+
+    startBtn.addEventListener('touchend', startShow);
+    startBtn.addEventListener('click', startShow);
+    overlay.addEventListener('touchend', startShow);
+    overlay.addEventListener('click', startShow);
+
+    window.addEventListener('DOMContentLoaded', () => {
+      render(0);
+    });
+  <\/script>
+</body>
+</html>`;
+
+        const now = new Date();
+        const dateStr = now.toISOString().slice(0, 10).replace(/-/g, '');
+        const outFileName = `SlideShow_${dateStr}_${intervalSec}s.html`;
+
+        const blob = new Blob([viewerHtml], { type: 'text/html;charset=utf-8' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = outFileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(link.href);
+
+        exportedFileNameBadge.textContent = outFileName;
+        exportInfoModal.classList.remove('hidden');
+        showMessage(`공유용 슬라이드쇼 파일 [${outFileName}]이 저장되었습니다!`, 'success');
+      } catch (err) {
+        console.error(err);
+        showMessage('슬라이드쇼 파일 생성 중 오류가 발생했습니다: ' + err.message, 'error');
+      }
+    });
+
+    closeExportModalBtn.addEventListener('click', () => exportInfoModal.classList.add('hidden'));
+    confirmExportModalBtn.addEventListener('click', () => exportInfoModal.classList.add('hidden'));
+
+    // Slideshow Preview Modal Handlers
+    previewSlideshowBtn.addEventListener('click', openSlideshow);
+    closeSlideshowBtn.addEventListener('click', closeSlideshow);
+    togglePlayBtn.addEventListener('click', toggleSlideshowPlay);
+    prevSlideBtn.addEventListener('click', prevSlide);
+    nextSlideBtn.addEventListener('click', nextSlide);
+
+    replayPreviewBtn.addEventListener('click', () => {
+      previewEndingOverlay.classList.add('hidden');
+      currentSlideIdx = 0;
+      if (state.bgAudio && state.bgAudio.blobUrl) {
+        slideshowAudio.currentTime = 0;
+        slideshowAudio.volume = 1.0;
+        slideshowAudio.play().catch(() => {});
+      }
+      showSlide(0);
+      startSlideTimer();
+    });
+
+    closeEndingPreviewBtn.addEventListener('click', closeSlideshow);
+
+    window.addEventListener('keydown', (e) => {
+      if (slideshowModal.classList.contains('hidden')) return;
+
+      if (e.key === 'Escape') closeSlideshow();
+      else if (e.key === ' ' || e.code === 'Space') {
+        e.preventDefault();
+        toggleSlideshowPlay();
+      } else if (e.key === 'ArrowLeft') prevSlide();
+      else if (e.key === 'ArrowRight') nextSlide();
+    });
+
+    function openSlideshow() {
+      if (state.images.length === 0) return;
+
+      currentSlideIdx = 0;
+      previewEndingOverlay.classList.add('hidden');
+      slideshowModal.classList.remove('hidden');
+      timerBadge.textContent = state.autoSlide ? `${state.slideInterval}초 자동` : '수동 넘김';
+
+      if (state.bgAudio && state.bgAudio.blobUrl) {
+        modalMusicTitle.textContent = `🎵 ${state.bgAudio.name}`;
+        slideshowAudio.src = state.bgAudio.blobUrl;
+        slideshowAudio.currentTime = 0;
+        slideshowAudio.volume = 1.0;
+        slideshowAudio.play().catch(() => {});
+      } else {
+        modalMusicTitle.textContent = '음악 없음';
+        slideshowAudio.src = '';
+      }
+
+      showSlide(0);
+
+      if (state.autoSlide) {
+        startSlideTimer();
+      } else {
+        pauseSlideTimer();
+      }
+    }
+
+    function closeSlideshow() {
+      slideshowModal.classList.add('hidden');
+      previewEndingOverlay.classList.add('hidden');
+      pauseSlideTimer();
+      slideshowAudio.pause();
+      slideshowAudio.src = '';
+    }
+
+    function showSlide(idx) {
+      if (state.images.length === 0) return;
+
+      // Check ending condition for 1-time mode
+      if (idx >= state.images.length) {
+        if (!state.loopMode) {
+          pauseSlideTimer();
+          previewEndingOverlay.classList.remove('hidden');
+          return;
+        } else {
+          idx = 0;
+        }
+      }
+
+      if (idx < 0) idx = state.images.length - 1;
+
+      currentSlideIdx = idx;
+      const current = state.images[idx];
+
+      slideshowImg.classList.remove('slide-fade');
+      void slideshowImg.offsetWidth;
+      slideshowImg.src = current.dataUrl;
+      slideshowImg.classList.add('slide-fade');
+
+      slideshowCounter.textContent = `${idx + 1} / ${state.images.length}`;
+      resetProgress();
+    }
+
+    function nextSlide() {
+      showSlide(currentSlideIdx + 1);
+      if (isSlidePlaying) restartInterval();
+    }
+
+    function prevSlide() {
+      showSlide(currentSlideIdx - 1);
+      if (isSlidePlaying) restartInterval();
+    }
+
+    function startSlideTimer() {
+      isSlidePlaying = true;
+      playPauseIcon.textContent = '⏸️';
+      playPauseText.textContent = '일시정지';
+
+      if (slideshowAudio.src) {
+        slideshowAudio.play().catch(() => {});
+      }
+
+      restartInterval();
+    }
+
+    function pauseSlideTimer() {
+      isSlidePlaying = false;
+      playPauseIcon.textContent = '▶️';
+      playPauseText.textContent = '재생';
+      clearInterval(slideTimer);
+      clearInterval(progressTimer);
+
+      if (slideshowAudio.src) {
+        slideshowAudio.pause();
+      }
+    }
+
+    function toggleSlideshowPlay() {
+      if (isSlidePlaying) {
+        pauseSlideTimer();
+      } else {
+        startSlideTimer();
+      }
+    }
+
+    function resetProgress() {
+      progressPercent = 0;
+      slideProgressBar.style.width = '0%';
+    }
+
+    function restartInterval() {
+      clearInterval(slideTimer);
+      clearInterval(progressTimer);
+      resetProgress();
+
+      const totalMs = state.slideInterval * 1000;
+      const stepMs = 50;
+      const stepPercent = (stepMs / totalMs) * 100;
+
+      progressTimer = setInterval(() => {
+        progressPercent += stepPercent;
+        if (progressPercent > 100) progressPercent = 100;
+        slideProgressBar.style.width = `${progressPercent}%`;
+      }, stepMs);
+
+      slideTimer = setInterval(() => {
+        nextSlide();
+      }, totalMs);
+    }
+
+    // PPT Generation and Packaging
+    downloadBtn.addEventListener('click', async () => {
+      if (state.images.length === 0 || state.isGenerating) return;
+
+      try {
+        state.isGenerating = true;
+        downloadSpinner.classList.remove('hidden');
+        downloadBtn.disabled = true;
+        btnText.textContent = '16:9 규격 슬라이드 패키징 중...';
+
+        const pptx = new PptxGenJS();
+        pptx.layout = 'LAYOUT_16x9';
+
+        const slideW = 10;
+        const slideH = 5.625;
+        const slideRatio = slideW / slideH;
+
+        btnText.textContent = '슬라이드 이미지 최적 배치 중...';
+        state.images.forEach((item) => {
+          const slide = pptx.addSlide();
+          slide.background = { color: '000000' };
+
+          let imgX = 0;
+          let imgY = 0;
+          let imgW = slideW;
+          let imgH = slideH;
+
+          const imgRatio = item.width / item.height;
+
+          if (state.fillMode === 'contain') {
+            if (imgRatio > slideRatio) {
+              imgW = slideW;
+              imgH = slideW / imgRatio;
+              imgX = 0;
+              imgY = (slideH - imgH) / 2;
+            } else {
+              imgH = slideH;
+              imgW = slideH * imgRatio;
+              imgX = (slideW - imgW) / 2;
+              imgY = 0;
+            }
+          } else if (state.fillMode === 'cover') {
+            if (imgRatio > slideRatio) {
+              imgH = slideH;
+              imgW = slideH * imgRatio;
+              imgX = (slideW - imgW) / 2;
+              imgY = 0;
+            } else {
+              imgW = slideW;
+              imgH = slideW / imgRatio;
+              imgX = 0;
+              imgY = (slideH - imgH) / 2;
+            }
+          } else {
+            imgX = 0;
+            imgY = 0;
+            imgW = slideW;
+            imgH = slideH;
+          }
+
+          slide.addImage({
+            data: item.dataUrl,
+            x: imgX,
+            y: imgY,
+            w: imgW,
+            h: imgH
+          });
+        });
+
+        btnText.textContent = '슬라이드 자동 넘김 타이머 설정 중...';
+        const rawBlob = await pptx.write('blob');
+
+        let finalBlob = rawBlob;
+        // Inject strictly valid transition timing XML without breaking OpenXML schemas
+        if (state.autoSlide && typeof JSZip !== 'undefined') {
+          try {
+            const zip = await JSZip.loadAsync(rawBlob);
+            const advMs = state.slideInterval * 1000;
+            const slideFiles = Object.keys(zip.files).filter(k => /^ppt\/slides\/slide\d+\.xml$/.test(k));
+
+            for (const slidePath of slideFiles) {
+              let xml = await zip.file(slidePath).async('string');
+
+              // Remove any pre-existing transition tags cleanly
+              xml = xml.replace(/<p:transition[^>]*>.*?<\/p:transition>/gs, '');
+              xml = xml.replace(/<p:transition[^>]*\/>/g, '');
+
+              // Standard, strictly valid transition advance XML (Office LTSC / 365 100% compliant)
+              const transitionTag = `<p:transition advTm="${advMs}"><p:fade/></p:transition>`;
+
+              if (xml.includes('</p:sld>')) {
+                xml = xml.replace('</p:sld>', `${transitionTag}</p:sld>`);
+                zip.file(slidePath, xml);
+              }
+            }
+
+            finalBlob = await zip.generateAsync({ type: 'blob' });
+          } catch (patchErr) {
+            console.warn('PPTX transition patch notice:', patchErr);
+          }
+        }
+
+        const now = new Date();
+        const dateStr = now.toISOString().slice(0, 10).replace(/-/g, '');
+        const timeStr = String(now.getHours()).padStart(2, '0') + String(now.getMinutes()).padStart(2, '0');
+        const fileName = `Presentation_${dateStr}_${timeStr}_${state.slideInterval}s.pptx`;
+
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(finalBlob);
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(link.href);
+
+        showMessage('PPT 생성이 완료되었습니다! 다운로드된 파일을 열고 안내 가이드대로 BGM을 적용해 보세요.', 'success');
+      } catch (error) {
+        console.error(error);
+        showMessage('PPT 생성 중 오류가 발생했습니다: ' + error.message, 'error');
+      } finally {
+        state.isGenerating = false;
+        downloadSpinner.classList.add('hidden');
+        downloadBtn.disabled = false;
+        updateUIState();
+      }
+    });
+  </script>
+</body>
+</html>
